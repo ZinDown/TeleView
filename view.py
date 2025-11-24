@@ -1,100 +1,124 @@
 import asyncio
 import httpx
-import configparser
-from typing import List, Optional
 import re
 
-# ----------------------------
-# Load config
-# ----------------------------
-config = configparser.ConfigParser()
-config.read("config.ini")
+# ---------------------------------------
+# SETTINGS (config.ini မလိုတော့ဘူး)
+# ---------------------------------------
+PROXY_SOURCE_URL = "https://api.proxyscrape.com/?request=displayproxies&proxytype=http"
+WORKERS = 50
+TIMEOUT = 15
+USER_AGENT = (
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+    "AppleWebKit/537.36 (KHTML, like Gecko) "
+    "Chrome/131.0 Safari/537.36"
+)
 
-PROXY_URL = config.get("proxy", "url")
-WORKERS = config.getint("settings", "workers")
-TIMEOUT = config.getint("settings", "timeout")
+# ---------------------------------------
+# LOGO
+# ---------------------------------------
+def print_logo():
+    print(
+f"""
+========================================
+  𝐓ʜɪ𝐬 𝐒ᴄʀɪᴘᴛ 𝐈𝐬 𝐎ᴡɴᴇᴅ 𝐁ʏ Edwin Moses
+  [+] Developer -> Mr.Lynn!
+  [+] Telegram Username -> @V_VIP_Official
+========================================
+"""
+    )
 
-USER_AGENT = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0 Safari/537.36"
-
-# ----------------------------
+# ---------------------------------------
 # Helpers
-# ----------------------------
-def format_proxy(proxy: str, proxy_type: str) -> dict:
-    scheme = proxy_type.lower()
-    return {"http://": f"{scheme}://{proxy}", "https://": f"{scheme}://{proxy}"}
+# ---------------------------------------
+def convert_proxy(proxy: str, proxy_type="http"):
+    return {
+        "http://": f"{proxy_type}://{proxy}",
+        "https://": f"{proxy_type}://{proxy}"
+    }
 
-async def fetch_text(url: str, proxy: Optional[str]=None, proxy_type: str="http") -> Optional[str]:
+async def fetch(url: str, proxy=None, proxy_type="http"):
     try:
-        async with httpx.AsyncClient(timeout=TIMEOUT, headers={"User-Agent": USER_AGENT}, proxies=format_proxy(proxy, proxy_type) if proxy else None) as client:
-            resp = await client.get(url)
-            resp.raise_for_status()
-            return resp.text
-    except Exception:
-        return None
-
-def extract_views(html: str) -> Optional[int]:
-    """Extract Telegram public view count safely."""
-    if not html:
-        return None
-    m = re.search(r"tgme_widget_message_views[^>]*>([\d,\.KkMm]+)<", html)
-    if m:
-        val = m.group(1).replace(",", "")
-        try:
-            if val[-1].lower() == "k":
-                return int(float(val[:-1])*1_000)
-            if val[-1].lower() == "m":
-                return int(float(val[:-1])*1_000_000)
-            return int(val)
-        except:
-            return None
-    return None
-
-# ----------------------------
-# Proxy downloader
-# ----------------------------
-async def download_proxies(proxy_type: str="http") -> List[str]:
-    url = PROXY_URL
-    if "proxytype=" in url:
-        url = re.sub(r"proxytype=[^&]+", f"proxytype={proxy_type}", url)
-    else:
-        sep = "&" if "?" in url else "?"
-        url = f"{url}{sep}proxytype={proxy_type}"
-
-    async with httpx.AsyncClient(timeout=20, headers={"User-Agent": USER_AGENT}) as client:
-        try:
+        async with httpx.AsyncClient(
+            timeout=TIMEOUT,
+            headers={"User-Agent": USER_AGENT},
+            proxies=convert_proxy(proxy, proxy_type) if proxy else None
+        ) as client:
             r = await client.get(url)
             r.raise_for_status()
-            proxies = [p.strip() for p in r.text.splitlines() if re.match(r"\d+\.\d+\.\d+\.\d+:\d+", p)]
-            return proxies
-        except:
-            return []
+            return r.text
+    except:
+        return None
 
-# ----------------------------
-# Main Async
-# ----------------------------
+def extract_views(html: str):
+    if not html:
+        return None
+
+    m = re.search(r'tgme_widget_message_views[^>]*>([\d,\.KkMm]+)<', html)
+    if not m:
+        return None
+
+    val = m.group(1).replace(",", "")
+    try:
+        if val[-1].lower() == "k":
+            return int(float(val[:-1]) * 1_000)
+        elif val[-1].lower() == "m":
+            return int(float(val[:-1]) * 1_000_000)
+        return int(val)
+    except:
+        return None
+
+# ---------------------------------------
+# Proxy Downloader
+# ---------------------------------------
+async def download_proxies(proxy_type="http"):
+    url = PROXY_SOURCE_URL.replace("proxytype=http", f"proxytype={proxy_type}")
+
+    try:
+        async with httpx.AsyncClient(timeout=20) as client:
+            r = await client.get(url)
+            r.raise_for_status()
+            proxies = [p.strip() for p in r.text.splitlines() if ":" in p]
+            return proxies
+    except:
+        return []
+
+# ---------------------------------------
+# Main Program
+# ---------------------------------------
 async def main():
-    print("=== 𝐓ʜɪ𝐬 𝐒ᴄʀɪᴘᴛ 𝐈𝐬 𝐎ᴡɴᴇᴅ 𝐁ʏ Edwin Moses ===")
-    print("[+] Developer: Mr.Lynn")
-    print("[+] Telegram: @V_VIP_Official")
-    print("="*50)
+    print_logo()
 
     post_url = input("Enter your Telegram Post URL: ").strip()
-    proxy_type = "http"  # can be socks4/socks5
+    proxy_type = "http"  # (Can change to socks4 / socks5)
 
+    print("\nDownloading proxy list...")
     proxies = await download_proxies(proxy_type)
-    print(f"Total proxies downloaded: {len(proxies)}")
+    print(f"Total proxies fetched: {len(proxies)}")
 
-    html = await fetch_text(post_url)
-    views = extract_views(html)
-    print(f"Original Views: {views if views is not None else 'Unknown'}")
+    print("\nFetching original Telegram post info...")
+    html = await fetch(post_url)
+    original = extract_views(html)
 
-    # Proxy check simulation (without sending fake views)
-    ok_count = 0
+    print(f"Original Views: {original if original else 'Unknown'}")
+
+    print("\nChecking proxy health...\n")
+    ok = 0
+    failed = 0
+
     for proxy in proxies[:WORKERS]:
-        if await fetch_text(post_url, proxy, proxy_type):
-            ok_count += 1
-    print(f"Working Proxies: {ok_count}")
-    print(f"Failed Proxies: {len(proxies)-ok_count}")
+        result = await fetch(post_url, proxy, proxy_type)
+        if result:
+            ok += 1
+            print(f"[OK] {proxy}")
+        else:
+            failed += 1
+            print(f"[FAIL] {proxy}")
+
+    print("\n========= RESULT SUMMARY =========")
+    print(f"Working Proxies: {ok}")
+    print(f"Failed Proxies : {failed}")
+    print("=================================")
 
 if __name__ == "__main__":
     asyncio.run(main())
