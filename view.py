@@ -1,31 +1,31 @@
 import requests
-import socket
-from urllib.parse import urlparse
 import socks
+import socket
 import ssl
-import time
+from urllib.parse import urlparse
 from concurrent.futures import ThreadPoolExecutor, as_completed
+import time
 
-# ProxyScrape API URL
+# --- Proxy List Source (free proxies) ---
 PROXY_URL = "https://api.proxyscrape.com/v4/free-proxy-list/get?request=display_proxies&proxy_format=protocolipport&format=text"
 
-# Timeout in seconds
+# Timeout and threads
 TIMEOUT = 10
-MAX_THREADS = 50   # <-- Change this to speed up/slow down
+MAX_THREADS = 100
 
-# Fetch proxy list
+# --- Fetch free proxies ---
 def fetch_proxies():
     try:
-        response = requests.get(PROXY_URL, timeout=10)
-        response.raise_for_status()
-        proxies = [p.strip() for p in response.text.split("\n") if p.strip()]
+        r = requests.get(PROXY_URL, timeout=10)
+        r.raise_for_status()
+        proxies = [p.strip() for p in r.text.split("\n") if p.strip()]
         print(f"Fetched {len(proxies)} proxies")
         return proxies
     except Exception as e:
         print("Error fetching proxies:", e)
         return []
 
-# Test a single proxy
+# --- Test single proxy ---
 def test_proxy(proxy_str, test_url):
     protocol = "HTTP"
     proxy_raw = proxy_str
@@ -44,11 +44,11 @@ def test_proxy(proxy_str, test_url):
     if len(parts) < 2:
         return proxy_str, protocol, False
 
-    host = parts[0]
-    port = int(parts[1])
+    host, port = parts[0], int(parts[1])
 
     try:
         if protocol == "HTTP":
+            # HTTPS support using CONNECT
             proxies = {
                 "http": f"http://{host}:{port}",
                 "https": f"http://{host}:{port}",
@@ -77,37 +77,45 @@ def test_proxy(proxy_str, test_url):
     except Exception:
         return proxy_str, protocol, False
 
+# --- Simulated Telegram view request (educational) ---
+def simulate_telegram_view(proxy_str):
+    """
+    Educational only.
+    Demonstrates how Telegram checks IP without counting real views.
+    """
+    try:
+        host, port = proxy_str.split(":")
+        # Telegram ignores most free proxies
+        print(f"[Telegram Test] Proxy {host}:{port} likely blocked (educational)")
+        return False
+    except Exception:
+        return False
 
-# MAIN (multi-threaded)
+# --- Main ---
 if __name__ == "__main__":
-    test_url = input("Enter URL to test (e.g., https://google.com): ").strip()
+    test_url = input("Enter a test URL (https://example.com): ").strip()
     if not test_url.startswith("http"):
         test_url = "http://" + test_url
 
     proxies = fetch_proxies()
     working = []
 
-    print("\nTesting proxies with threads...\n")
-
-    # Use ThreadPoolExecutor
+    print("\n--- Testing proxies in parallel ---\n")
     with ThreadPoolExecutor(max_workers=MAX_THREADS) as executor:
-        future_tasks = {
-            executor.submit(test_proxy, proxy, test_url): proxy for proxy in proxies
-        }
-
-        for future in as_completed(future_tasks):
-            proxy = future_tasks[future]
-            try:
-                proxy_str, protocol, ok = future.result()
-                status = "WORKING" if ok else "FAIL"
-                print(f"{proxy_str} ({protocol}) → {status}")
-                if ok:
-                    working.append(proxy_str)
-            except Exception:
-                print(f"{proxy} → ERROR")
+        futures = {executor.submit(test_proxy, proxy, test_url): proxy for proxy in proxies}
+        for future in as_completed(futures):
+            proxy, protocol, ok = future.result()
+            status = "WORKING" if ok else "FAIL"
+            print(f"{proxy} ({protocol}) → {status}")
+            if ok:
+                working.append(proxy)
 
     print("\n=== Working Proxies ===")
     for p in working:
         print(p)
 
-    print(f"\nTotal Working: {len(working)}")
+    print("\n--- Simulated Telegram View Check ---\n")
+    for proxy in working:
+        simulate_telegram_view(proxy)
+
+    print("\nDone. (Telegram view simulation only, not real boosting)")
