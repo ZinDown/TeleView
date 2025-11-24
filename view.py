@@ -4,7 +4,7 @@ import re
 
 PROXY_SOURCE_URL = "https://api.proxyscrape.com/?request=displayproxies&proxytype=http"
 TIMEOUT = 10
-WORKERS = 50
+WORKERS = 2000
 
 HEADERS = {
     "User-Agent": (
