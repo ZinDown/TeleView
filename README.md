@@ -16,6 +16,10 @@ termux-setup-storage
 ```bash
 pip install requests beautifulsoup4 pyfiglet colorama
 ```
-### For Run 
+### For Run Samusar
 ```bash
 python samusar.py
+```
+### For Run Maynoe
+```bash
+python maynoe.py
