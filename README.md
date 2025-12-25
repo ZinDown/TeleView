@@ -1,11 +1,15 @@
-# TeleView
-This is Python Script for Data Scrape.
+# Python Data Scraper
 
-# Termux storage permission
+**Author:** Lynn  
+**Description:** Python script to scrape data from Website .  
+**Platform:** Termux / Linux / Windows  
+
+---
+
+## ⚡ Setup & Usage
+
+### 1️⃣ Grant Termux Storage Permission (Android only)
+```bash
 termux-setup-storage
-
-# Required packages install
 pip install requests beautifulsoup4 pyfiglet colorama
-
-# Python script run
 python samusar.py
