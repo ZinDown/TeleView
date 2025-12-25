@@ -1,4 +1,4 @@
-# Python Data Scraper
+# Data Scraper
 
 **Author:** Lynn  
 **Description:** Python script to scrape data from Website .  
