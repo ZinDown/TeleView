@@ -28,7 +28,7 @@ def clear():
 # ================= BANNER =================  
 def banner():  
     clear()  
-    text = pyfiglet.figlet_format("MAYNOE", font="slant")  
+    text = pyfiglet.figlet_format("MAY NOE", font="slant")  
     print(Fore.GREEN + text)  
     print(Fore.YELLOW + "Maynoe Scraper ( 𝐒𝐜𝐫𝐢𝐩𝐭 𝐁𝐲 𝐋𝐲𝐧𝐧 )")  
     print(Fore.CYAN + "-" * 40)  
