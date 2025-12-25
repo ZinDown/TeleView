@@ -11,5 +11,7 @@
 ### 1️⃣ Grant Termux Storage Permission (Android only)
 ```bash
 termux-setup-storage
+
 pip install requests beautifulsoup4 pyfiglet colorama
+
 python samusar.py
