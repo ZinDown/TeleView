@@ -211,7 +211,7 @@ def run_samusar():
 
             link = (
            
-                "https://www.samusar.com/embed/{vid}"
+                f"https://www.samusar.com/embed/{vid}"
             )
 
             all_data.append({
