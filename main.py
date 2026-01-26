@@ -83,7 +83,12 @@ def scrape_mmporns(page):
 
         for item in items:
             title_el = item.find("h2")
-            title = title_el.get_text(strip=True) if title_el else "No Title"
+            if title_el:
+                title = title_el.get_text(strip=True)
+            else:
+                img_el = item.find("img")
+                title = img_el.get("alt", "No Title Found").strip() if img_el else "No Title"
+
 
             img_el = item.find("img")
             image = img_el.get("src", "") if img_el else ""
@@ -97,7 +102,7 @@ def scrape_mmporns(page):
                 "title": title,
                 "image": image,
                 "link": link,
-                "type": "web"
+                "type": "x"
             })
 
         return results
@@ -237,3 +242,6 @@ def run_samusar():
 # ================= RUN =================
 if __name__ == "__main__":
     main_menu()
+    
+    
+    
